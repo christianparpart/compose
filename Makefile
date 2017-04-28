@@ -1,12 +1,12 @@
 CXX = clang++-3.9
 CXXFLAGS = -O0 -ggdb #-stdlib=libc++
 
-all: lazy_example1
+all: compose_example1
 
-lazy_example1: lazy_example1.cc lazy.h
+compose_example1: compose_example1.cc compose.h
 	$(CXX) $(CXXFLAGS) -o $@ $< -std=c++14
 
 clean:
-	rm -f lazy_example1
+	rm -f compose_example1
 
 .PHONY: clean all

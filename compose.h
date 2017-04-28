@@ -12,37 +12,36 @@
 #include <iterator>
 #include <algorithm>
 #include <functional>
-#include <tr1/functional>
 #include <type_traits>
 
-template<typename Container, typename Map, typename InputType, typename OutputType> class LazyMap;
-template<typename Container, typename Predicate> class LazySelect;
-template<typename Container> class LazyTake;
+template<typename Container, typename Map, typename InputType, typename OutputType> class ComposeMap;
+template<typename Container, typename Predicate> class ComposeSelect;
+template<typename Container> class ComposeTake;
 
 template<typename Container>
-class Lazy {
+class Compose {
  public:
   using iterator = typename Container::iterator;
   using value_type = typename Container::value_type;
-  using Self = Lazy<Container>;
+  using Self = Compose<Container>;
 
-  explicit Lazy(Container& container) : container_(container) {}
+  explicit Compose(Container& container) : container_(container) {}
 
   auto begin() { return container_.begin(); }
   auto end() { return container_.end(); }
 
   auto take(size_t limit) {
-    return LazyTake<Lazy<Container>>(*this, limit);
+    return ComposeTake<Compose<Container>>(*this, limit);
   }
 
   template<typename Predicate>
   auto select(Predicate pred) {
-    return LazySelect<Lazy<Container>, Predicate>(*this, pred);
+    return ComposeSelect<Compose<Container>, Predicate>(*this, pred);
   }
 
   template<typename Map>
   auto map(Map m) {
-    return LazyMap<Container, Map, value_type, decltype(m(value_type()))>(container_, m);
+    return ComposeMap<Container, Map, value_type, decltype(m(value_type()))>(container_, m);
   }
 
   size_t size() {
@@ -57,14 +56,14 @@ class Lazy {
 };
 
 template<typename Container, typename Map, typename InputType, typename OutputType>
-class LazyMap {
+class ComposeMap {
  public:
   //using input_type = typename std::iterator_traits<decltype(Container().begin())>::value_type;
   using input_type = InputType; // typename std::remove_reference<decltype(*Container().begin())>::type;
   using output_type = OutputType; // TODO typename std::result_of_t<Map>;
   using value_type = output_type;
 
-  LazyMap(Container& that, Map m)
+  ComposeMap(Container& that, Map m)
       : container_(that), map_(m) {}
 
   class iterator { // {{{
@@ -103,20 +102,20 @@ class LazyMap {
     return total;
   }
 
-  using Self = LazyMap<Container, Map, InputType, OutputType>;
+  using Self = ComposeMap<Container, Map, InputType, OutputType>;
 
   template<typename Map2>
   auto map(Map2 m) {
-    return LazyMap<Self, Map2, value_type, decltype(m(value_type()))>(*this, m);
+    return ComposeMap<Self, Map2, value_type, decltype(m(value_type()))>(*this, m);
   }
 
   template<typename Predicate>
   auto select(Predicate pred) {
-    return LazySelect<Self, Predicate>(*this, pred);
+    return ComposeSelect<Self, Predicate>(*this, pred);
   }
 
   auto take(size_t limit) {
-    return LazyTake<Self>(*this, limit);
+    return ComposeTake<Self>(*this, limit);
   }
 
  private:
@@ -172,9 +171,9 @@ class SelectIterator {
 };
 
 template<typename Container, typename Predicate>
-class LazySelect {
+class ComposeSelect {
  public:
-  LazySelect(Container& container, Predicate predicate)
+  ComposeSelect(Container& container, Predicate predicate)
       : container_(container), predicate_(predicate) {}
 
   using value_type = typename Container::value_type;
@@ -189,10 +188,10 @@ class LazySelect {
     return total;
   }
 
-  using Self = LazySelect<Container, Predicate>;
+  using Self = ComposeSelect<Container, Predicate>;
 
-  LazyTake<Self> take(size_t limit) {
-    return LazyTake<Self>(*this, limit);
+  ComposeTake<Self> take(size_t limit) {
+    return ComposeTake<Self>(*this, limit);
   }
 
  private:
@@ -201,7 +200,7 @@ class LazySelect {
 };
 
 template<typename Container>
-class LazyTake {
+class ComposeTake {
  public:
   using value_type = typename Container::value_type;
 
@@ -230,7 +229,7 @@ class LazyTake {
     typename Container::iterator end_;
   }; // }}}
 
-  LazyTake(Container& container, size_t limit)
+  ComposeTake(Container& container, size_t limit)
       : container_(container), limit_(limit) {}
 
   size_t size() {
@@ -249,7 +248,7 @@ class LazyTake {
 };
 
 template<typename T>
-Lazy<T> lazy(T& container) {
-  return Lazy<T>(container);
+Compose<T> compose(T& container) {
+  return Compose<T>(container);
 }
 

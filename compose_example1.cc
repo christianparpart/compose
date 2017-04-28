@@ -1,10 +1,10 @@
-#include "lazy.h"
+#include "compose.h"
 #include <iostream>
 
 int main() {
   auto v = {1, 2, 3, 4, 5, 6, 7, 8};
 
-  auto range = lazy(v).
+  auto range = compose(v).
     map([](auto x) { return x * x; }).
     map([](auto x) { return -x; }).
     select([](auto x) { return !(x % 2); }).
