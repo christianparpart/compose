@@ -24,27 +24,27 @@ class Compose {
   using iterator = typename Container::iterator;
   using value_type = typename Container::value_type;
 
-  explicit Compose(Container& container) : container_(container) {}
+  explicit Compose(const Container& container) : container_(container) {}
 
-  auto begin() { return static_cast<Derived&>(*this).begin(); }
-  auto end() { return static_cast<Derived&>(*this).end(); }
+  auto begin() const { return static_cast<const Derived&>(*this).begin(); }
+  auto end() const { return static_cast<const Derived&>(*this).end(); }
 
-  auto take(size_t limit) {
-    return ComposeTake<Derived>(static_cast<Derived&>(*this), limit);
+  auto take(size_t limit) const {
+    return ComposeTake<Derived>(static_cast<const Derived&>(*this), limit);
   }
 
   template<typename Predicate>
-  auto select(Predicate pred) {
-    return ComposeSelect<Derived, Predicate>(static_cast<Derived&>(*this), pred);
+  auto select(Predicate pred) const {
+    return ComposeSelect<Derived, Predicate>(static_cast<const Derived&>(*this), pred);
   }
 
   template<typename Map>
-  auto map(Map m) {
-    return ComposeMap<Derived, Map, value_type, decltype(m(value_type()))>(static_cast<Derived&>(*this), m);
+  auto map(Map m) const {
+    return ComposeMap<Derived, Map, value_type, decltype(m(value_type()))>(static_cast<const Derived&>(*this), m);
   }
 
   template<typename V, typename Func>
-  V fold(V init, Func func) {
+  V fold(V init, Func func) const {
     for (const auto& a: *this)
       init = func(init, a);
 
@@ -52,7 +52,7 @@ class Compose {
   }
 
   template<typename Func>
-  void each_with_index(Func func) {
+  void each_with_index(Func func) const {
     size_t i = 0;
     for (const auto& a: *this) {
       func(i, a);
@@ -61,13 +61,13 @@ class Compose {
   }
 
   template<typename Func>
-  void each(Func func) {
+  void each(Func func) const {
     for (const auto& a: *this) {
       func(a);
     }
   }
 
-  size_t size() {
+  size_t size() const {
     size_t total = 0;
     for (const auto& a: *this)
       ++total;
@@ -75,20 +75,20 @@ class Compose {
   }
 
  protected:
-  Container& container_;
+  const Container& container_;
 };
 
 template<typename Container>
 class ComposeForward : public Compose<Container, ComposeForward<Container>> {
  public:
-  ComposeForward(Container& that)
+  ComposeForward(const Container& that)
       : Compose<Container, ComposeForward<Container>>(that) {}
 
   using iterator = typename Container::iterator;
   using value_type = typename Container::value_type;
 
-  auto begin() { return this->container_.begin(); }
-  auto end() { return this->container_.end(); }
+  auto begin() const { return this->container_.begin(); }
+  auto end() const { return this->container_.end(); }
   auto size() { return this->container_.size(); }
 };
 
@@ -100,15 +100,15 @@ class ComposeMap : public Compose<Container, ComposeMap<Container, Map, InputTyp
   using output_type = OutputType; // TODO typename std::result_of_t<Map>;
   using value_type = output_type;
 
-  ComposeMap(Container& that, Map m)
+  ComposeMap(const Container& that, Map m)
       : Compose<Container, ComposeMap<Container, Map, InputType, OutputType>>(that),
         map_(m) {}
 
   class iterator { // {{{
    public:
-    iterator(Container& that, Map map)
+    iterator(const Container& that, Map map)
         : cur_(that.begin()), end_(that.end()), map_(map) {}
-    explicit iterator(Container& that)
+    explicit iterator(const Container& that)
         : cur_(that.end()), end_(that.end()), map_() {}
 
     auto operator*() { return map_(*cur_); }
@@ -130,8 +130,8 @@ class ComposeMap : public Compose<Container, ComposeMap<Container, Map, InputTyp
     std::function<output_type(input_type)> map_;
   }; // }}}
 
-  auto begin() { return iterator(this->container_, map_); }
-  auto end() { return iterator(this->container_); }
+  auto begin() const { return iterator(this->container_, map_); }
+  auto end() const { return iterator(this->container_); }
 
  private:
   Map map_;
@@ -140,14 +140,14 @@ class ComposeMap : public Compose<Container, ComposeMap<Container, Map, InputTyp
 template<typename Container, typename Predicate>
 class SelectIterator {
  public:
-  SelectIterator(Container& that, Predicate pred)
+  SelectIterator(const Container& that, Predicate pred)
       : cur_(that.begin()), end_(that.end()), predicate_(pred) {
     while (cur_ != end_ && !predicate_(*cur_)) {
       ++cur_;
     }
   }
 
-  explicit SelectIterator(Container& that)
+  explicit SelectIterator(const Container& that)
       : cur_(that.end()), end_(that.end()), predicate_() {}
 
   auto operator*() { return *this->cur_; }
@@ -187,15 +187,15 @@ class SelectIterator {
 template<typename Container, typename Predicate>
 class ComposeSelect : public Compose<Container, ComposeSelect<Container, Predicate>> {
  public:
-  ComposeSelect(Container& container, Predicate predicate)
+  ComposeSelect(const Container& container, Predicate predicate)
       : Compose<Container, ComposeSelect<Container, Predicate>>(container),
         predicate_(predicate) {}
 
   using value_type = typename Container::value_type;
   using iterator = SelectIterator<Container, Predicate>;
 
-  auto begin() { return iterator(this->container_, predicate_); }
-  auto end() { return iterator(this->container_); }
+  auto begin() const { return iterator(this->container_, predicate_); }
+  auto end() const { return iterator(this->container_); }
 
  private:
   Predicate predicate_;
@@ -208,7 +208,7 @@ class ComposeTake : public Compose<Container, ComposeTake<Container>> {
 
   class iterator { // {{{
    public:
-    iterator(Container& that, size_t limit)
+    iterator(const Container& that, size_t limit)
         : cur_(that.begin()), end_(that.end()), limit_(limit) {}
 
     iterator& operator++() {
@@ -231,18 +231,18 @@ class ComposeTake : public Compose<Container, ComposeTake<Container>> {
     typename Container::iterator end_;
   }; // }}}
 
-  ComposeTake(Container& container, size_t limit)
+  ComposeTake(const Container& container, size_t limit)
       : Compose<Container, ComposeTake<Container>>(container),
         limit_(limit) {}
 
-  auto begin() { return iterator(this->container_, limit_); }
-  auto end() { return iterator(this->container_, 0); }
+  auto begin() const { return iterator(this->container_, limit_); }
+  auto end() const { return iterator(this->container_, 0); }
 
  private:
   size_t limit_;
 };
 
 template<typename T>
-ComposeForward<T> compose(T& container) {
+ComposeForward<T> compose(const T& container) {
   return ComposeForward<T>(container);
 }

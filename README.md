@@ -31,5 +31,4 @@ int main() {
 - ... (more to come, by dragons)
 
 ### TODO
-- support `const` containers as input
 - support more functional patterns, such as zip, foldLeft, ...
