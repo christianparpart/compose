@@ -44,6 +44,14 @@ class Compose {
   }
 
   template<typename Func>
+  auto fold(value_type init, Func func) -> value_type {
+    for (const auto& a: *this)
+      init = func(init, a);
+
+    return init;
+  }
+
+  template<typename Func>
   void each_with_index(Func func) {
     size_t i = 0;
     for (const auto& a: *this) {

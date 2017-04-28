@@ -2,7 +2,7 @@
 #include <iostream>
 
 int main() {
-  auto v = {1, 2, 3, 4, 5, 6, 7, 8};
+  const auto v = {1, 2, 3, 4, 5, 6, 7, 8};
 
   auto range = compose(v)
                    .map([](auto x) { return x * x; })
@@ -14,4 +14,8 @@ int main() {
   range.each_with_index([](auto index, auto a) {
     std::cout << index << ": " << a << std::endl;
   });
+
+  const auto sum = range.fold(0, [](auto a, auto b) { return a + b; });
+
+  std::cout << "sum: " << sum << std::endl;
 }

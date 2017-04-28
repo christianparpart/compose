@@ -26,6 +26,8 @@ int main() {
 - `map(func)`
 - `select(predicate)`
 - `take(count)`
+- `fold(init, func)`
+- `size()`
 - ... (more to come, by dragons)
 
 ### TODO
