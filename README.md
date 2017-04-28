@@ -3,7 +3,7 @@
 That's my little library for allowing myself to code in fuctional style in C++14.
 
 ### Example
-```!cpp
+```cpp
 #include "lazy.h"
 #include <iostream>
 
