@@ -43,8 +43,8 @@ class Compose {
     return ComposeMap<Derived, Map, value_type, decltype(m(value_type()))>(static_cast<Derived&>(*this), m);
   }
 
-  template<typename Func>
-  auto fold(value_type init, Func func) -> value_type {
+  template<typename V, typename Func>
+  V fold(V init, Func func) {
     for (const auto& a: *this)
       init = func(init, a);
 

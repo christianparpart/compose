@@ -18,4 +18,11 @@ int main() {
   const auto sum = range.fold(0, [](auto a, auto b) { return a + b; });
 
   std::cout << "sum: " << sum << std::endl;
+
+  const auto glue = range.fold(std::string(), [](auto a, auto b) {
+    return a.empty() ? std::to_string(b)
+                     : a + " " + std::to_string(b);
+  });
+
+  std::cout << "glue: " << glue << std::endl;
 }
