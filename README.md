@@ -1,4 +1,4 @@
-### Lazy
+### Compose
 
 That's my little library for allowing myself to code in fuctional style in C++14.
 
