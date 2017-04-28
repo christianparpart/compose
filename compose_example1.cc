@@ -11,7 +11,7 @@ int main() {
 
   std::cout << "count: " << range.size() << std::endl;
 
-  for (auto a : range) {
-    std::cout << "a: " << a << std::endl;
-  }
+  range.each_with_index([](auto index, auto a) {
+    std::cout << index << ": " << a << std::endl;
+  });
 }

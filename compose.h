@@ -43,6 +43,22 @@ class Compose {
     return ComposeMap<Derived, Map, value_type, decltype(m(value_type()))>(static_cast<Derived&>(*this), m);
   }
 
+  template<typename Func>
+  void each_with_index(Func func) {
+    size_t i = 0;
+    for (const auto& a: *this) {
+      func(i, a);
+      ++i;
+    }
+  }
+
+  template<typename Func>
+  void each(Func func) {
+    for (const auto& a: *this) {
+      func(a);
+    }
+  }
+
   size_t size() {
     size_t total = 0;
     for (const auto& a: *this)
