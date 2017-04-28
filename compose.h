@@ -18,30 +18,29 @@ template<typename Container, typename Map, typename InputType, typename OutputTy
 template<typename Container, typename Predicate> class ComposeSelect;
 template<typename Container> class ComposeTake;
 
-template<typename Container>
+template<typename Container, typename Derived>
 class Compose {
  public:
   using iterator = typename Container::iterator;
   using value_type = typename Container::value_type;
-  using Self = Compose<Container>;
 
   explicit Compose(Container& container) : container_(container) {}
 
-  auto begin() { return container_.begin(); }
-  auto end() { return container_.end(); }
+  auto begin() { return static_cast<Derived&>(*this).begin(); }
+  auto end() { return static_cast<Derived&>(*this).end(); }
 
   auto take(size_t limit) {
-    return ComposeTake<Compose<Container>>(*this, limit);
+    return ComposeTake<Derived>(static_cast<Derived&>(*this), limit);
   }
 
   template<typename Predicate>
   auto select(Predicate pred) {
-    return ComposeSelect<Compose<Container>, Predicate>(*this, pred);
+    return ComposeSelect<Derived, Predicate>(static_cast<Derived&>(*this), pred);
   }
 
   template<typename Map>
   auto map(Map m) {
-    return ComposeMap<Container, Map, value_type, decltype(m(value_type()))>(container_, m);
+    return ComposeMap<Derived, Map, value_type, decltype(m(value_type()))>(static_cast<Derived&>(*this), m);
   }
 
   size_t size() {
@@ -55,16 +54,31 @@ class Compose {
   Container& container_;
 };
 
+template<typename Container>
+class ComposeForward : public Compose<Container, ComposeForward<Container>> {
+ public:
+  ComposeForward(Container& that)
+      : Compose<Container, ComposeForward<Container>>(that) {}
+
+  using iterator = typename Container::iterator;
+  using value_type = typename Container::value_type;
+
+  auto begin() { return this->container_.begin(); }
+  auto end() { return this->container_.end(); }
+  auto size() { return this->container_.size(); }
+};
+
 template<typename Container, typename Map, typename InputType, typename OutputType>
-class ComposeMap {
+class ComposeMap : public Compose<Container, ComposeMap<Container, Map, InputType, OutputType>> {
  public:
   //using input_type = typename std::iterator_traits<decltype(Container().begin())>::value_type;
-  using input_type = InputType; // typename std::remove_reference<decltype(*Container().begin())>::type;
+  using input_type = InputType; // TODO typename std::remove_reference<decltype(*Container().begin())>::type;
   using output_type = OutputType; // TODO typename std::result_of_t<Map>;
   using value_type = output_type;
 
   ComposeMap(Container& that, Map m)
-      : container_(that), map_(m) {}
+      : Compose<Container, ComposeMap<Container, Map, InputType, OutputType>>(that),
+        map_(m) {}
 
   class iterator { // {{{
    public:
@@ -95,31 +109,7 @@ class ComposeMap {
   auto begin() { return iterator(this->container_, map_); }
   auto end() { return iterator(this->container_); }
 
-  size_t size() {
-    size_t total = 0;
-    for (const auto& a: *this)
-      ++total;
-    return total;
-  }
-
-  using Self = ComposeMap<Container, Map, InputType, OutputType>;
-
-  template<typename Map2>
-  auto map(Map2 m) {
-    return ComposeMap<Self, Map2, value_type, decltype(m(value_type()))>(*this, m);
-  }
-
-  template<typename Predicate>
-  auto select(Predicate pred) {
-    return ComposeSelect<Self, Predicate>(*this, pred);
-  }
-
-  auto take(size_t limit) {
-    return ComposeTake<Self>(*this, limit);
-  }
-
  private:
-  Container& container_;
   Map map_;
 };
 
@@ -171,36 +161,24 @@ class SelectIterator {
 };
 
 template<typename Container, typename Predicate>
-class ComposeSelect {
+class ComposeSelect : public Compose<Container, ComposeSelect<Container, Predicate>> {
  public:
   ComposeSelect(Container& container, Predicate predicate)
-      : container_(container), predicate_(predicate) {}
+      : Compose<Container, ComposeSelect<Container, Predicate>>(container),
+        predicate_(predicate) {}
 
   using value_type = typename Container::value_type;
   using iterator = SelectIterator<Container, Predicate>;
-  iterator begin() { return iterator(this->container_, predicate_); }
-  iterator end() { return iterator(this->container_); }
 
-  size_t size() {
-    size_t total = 0;
-    for (const auto& a: *this)
-      ++total;
-    return total;
-  }
-
-  using Self = ComposeSelect<Container, Predicate>;
-
-  ComposeTake<Self> take(size_t limit) {
-    return ComposeTake<Self>(*this, limit);
-  }
+  auto begin() { return iterator(this->container_, predicate_); }
+  auto end() { return iterator(this->container_); }
 
  private:
-  Container& container_;
   Predicate predicate_;
 };
 
 template<typename Container>
-class ComposeTake {
+class ComposeTake : public Compose<Container, ComposeTake<Container>> {
  public:
   using value_type = typename Container::value_type;
 
@@ -230,25 +208,17 @@ class ComposeTake {
   }; // }}}
 
   ComposeTake(Container& container, size_t limit)
-      : container_(container), limit_(limit) {}
+      : Compose<Container, ComposeTake<Container>>(container),
+        limit_(limit) {}
 
-  size_t size() {
-    size_t total = 0;
-    for (const auto& a: *this)
-      ++total;
-    return total;
-  }
-
-  iterator begin() { return iterator(this->container_, limit_); }
-  iterator end() { return iterator(this->container_, 0); }
+  auto begin() { return iterator(this->container_, limit_); }
+  auto end() { return iterator(this->container_, 0); }
 
  private:
-  Container& container_;
   size_t limit_;
 };
 
 template<typename T>
-Compose<T> compose(T& container) {
-  return Compose<T>(container);
+ComposeForward<T> compose(T& container) {
+  return ComposeForward<T>(container);
 }
-
