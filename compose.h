@@ -29,20 +29,37 @@ class Compose {
   auto begin() const { return static_cast<const Derived&>(*this).begin(); }
   auto end() const { return static_cast<const Derived&>(*this).end(); }
 
+  /**
+   * Limits the input array to @p limit elements.
+   */
   auto take(size_t limit) const {
     return ComposeTake<Derived>(static_cast<const Derived&>(*this), limit);
   }
 
+  /**
+   * Filters the input array by by selecting only elements that @p pred returns
+   * true.
+   */
   template<typename Predicate>
   auto select(Predicate pred) const {
     return ComposeSelect<Derived, Predicate>(static_cast<const Derived&>(*this), pred);
   }
 
+  /**
+   * Maps each element from the input array via @p func into a new output array.
+   */
   template<typename Map>
-  auto map(Map m) const {
-    return ComposeMap<Derived, Map, value_type, decltype(m(value_type()))>(static_cast<const Derived&>(*this), m);
+  auto map(Map func) const {
+    return ComposeMap<Derived, Map, value_type, decltype(func(value_type()))>(static_cast<const Derived&>(*this), func);
   }
 
+  /**
+   * Folds the input array from left to right.
+   *
+   * @p init Initial value.
+   * @p func Fold function with first argument being init (or result of previous
+   *         fold) and second argument the input array's element.
+   */
   template<typename V, typename Func>
   V fold(V init, Func func) const {
     for (const auto& a: *this)
@@ -51,6 +68,12 @@ class Compose {
     return init;
   }
 
+  /**
+   * Invokes @p func for each element in input array.
+   *
+   * @p func Callback that accepts the index as first argument, and second
+   *         argument the input array's element.
+   */
   template<typename Func>
   void each_with_index(Func func) const {
     size_t i = 0;
@@ -60,6 +83,11 @@ class Compose {
     }
   }
 
+  /**
+   * Invokes @p func for each element in input array.
+   *
+   * @p func Callback that accepts the input array's element.
+   */
   template<typename Func>
   void each(Func func) const {
     for (const auto& a: *this) {
@@ -67,6 +95,11 @@ class Compose {
     }
   }
 
+  /**
+   * Counts the number of elements in the input array.
+   *
+   * @return Number of elements in the input array.
+   */
   size_t size() const {
     size_t total = 0;
     for (const auto& a: *this)
